@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>TimeZoneShift - First Decade of DST Changes</title>
+	<meta name="description" content="Displays the very first DST change record found from the first decade (starting April 30, 1916) for each time zone.">
+	<script src="getDSTTransitions.js"></script>
+	<style>
+		table { margin-top: 1em }
+		td { border: 1px solid #ccc; padding: 0 1em; text-align: center; }
+		a, a:visited { color: blue; font-weight: bold; }
+	</style>
+</head>
+<body>
+<h1>First Decade of DST Changes by Time Zone</h1>
+
+<p>Daylight Saving Time (DST) was first introduced during World War I as a way to conserve energy by making better use of daylight. The concept was first proposed by <a href="https://en.wikipedia.org/wiki/George_Hudson_(entomologist)">George Hudson</a> in 1895, but it wasn't widely adopted until the war. DST has since been implemented in many countries around the world since April 30, 1916, although the dates and rules vary by region. In this example, we explore the first decade of time changes detected by the <code><a href="https://402.ecma-international.org/">Intl</a></code> API for various time zones, focusing on the first DST transition.
+</p>
+
+<table>
+	<thead>
+	<tr>
+		<th>Time Zone</th>
+		<th>First DST Transition</th>
+		<th>Clock change</th>
+	</tr>
+	</thead>
+	<tbody id="results-table-body">
+	<!-- Rows will be populated by JavaScript -->
+	</tbody>
+</table>
+
+<script>
+
+	function getChangeAsString(ms, tz_name) {
+		const formatter = new Intl.DateTimeFormat('en-US', {
+			timeZone: tz_name,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hourCycle: 'h23',
+		})
+		const s_1 = formatter.format(ms)
+		const s_2 = formatter.format(ms + 1)
+		const t_1 = Date.UTC(+s_1.substring(6, 10), +s_1.substring(0, 2) - 1, +s_1.substring(3, 5), +s_1.substring(12, 14), +s_1.substring(15, 17), +s_1.substring(18, 20))
+		const t_2 = Date.UTC(+s_2.substring(6, 10), +s_2.substring(0, 2) - 1, +s_2.substring(3, 5), +s_2.substring(12, 14), +s_2.substring(15, 17), +s_2.substring(18, 20))
+		const delta = t_2 - t_1 - 1000
+		return (delta < 0 ? '-' : '+') + new Date(Math.abs(delta)).toLocaleString('fr-FR', {
+			minute: 'numeric',
+			'hour': 'numeric',
+			timeZone: 'UTC',
+		})
+
+	}
+
+	// DST transitions within the first decade
+	const dateFrom = new Date(1916, 3, 30)
+	const dateEnd = new Date(1926, 3, 30)
+
+	// Populate the table with the first DST transition for each time zone
+
+	const timeZones = Intl.supportedValuesOf('timeZone')
+	const tbody = document.getElementById('results-table-body')
+
+	const rows = []
+	timeZones.forEach(tz_name => {
+		const firstTransitionUnix = getDSTTransitions(tz_name, dateFrom, dateEnd).next().value
+		if (firstTransitionUnix) {
+			const firstTransitionBefore = new Date(firstTransitionUnix)
+
+			if (firstTransitionBefore) {
+				const row = document.createElement('tr')
+				row.dataset.unix = firstTransitionUnix
+
+				const timeZoneCell = document.createElement('td')
+				timeZoneCell.textContent = tz_name
+				row.appendChild(timeZoneCell)
+
+				const dateCell = document.createElement('td')
+				dateCell.textContent = firstTransitionBefore.toLocaleString([], {
+					year: 'numeric',
+					weekday: 'short',
+					day: 'numeric',
+					month: 'short',
+					// hour: 'numeric',
+					// minute: 'numeric',
+					timeZone: tz_name,
+				})
+				row.appendChild(dateCell)
+
+				const changeCell = document.createElement('td')
+				changeCell.textContent = getChangeAsString(firstTransitionUnix, tz_name)
+				row.appendChild(changeCell)
+
+				rows.push(row)
+			}
+		}
+	})
+	// Populate the tbody on page load
+	rows.sort((a, b) => a.dataset.unix - b.dataset.unix).forEach(tr => tbody.appendChild(tr))
+
+
+</script>
+</body>
+</html>

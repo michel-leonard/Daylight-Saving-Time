@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>TimeZoneShift - DST Transition Analysis</title>
+		<meta name="description" content="Displays the count of DST transitions for the past 100 years for all time zones, with a live time retrieval display.">
+	<script src="getDSTTransitions.js"></script>
+	<style>
+		table { margin-top: 1em }
+		td { border: 1px solid #ccc; padding: 0 1em; text-align: center; }
+	</style>
+</head>
+<body>
+<h1>DST Transition Analysis (100 years)</h1>
+<p>This example provides a comprehensive way to analyze DST transitions across all supported time zones, giving users insight into the complexity and performance of handling time zone data in <b id="total-duration">0</b> ms over a large date range.</p>
+<table>
+	<thead>
+	<tr>
+		<th>Time Zone</th>
+		<th>Count of Transitions</th>
+		<th>Calculation Duration (ms)</th>
+	</tr>
+	</thead>
+	<tbody id="results-table-body">
+	<!-- Rows will be populated by JavaScript -->
+	</tbody>
+</table>
+
+<script>
+
+	// Function to calculate DST transitions for each time zone and measure the time taken
+	function calculateDSTTransitions() {
+		const timeZones = Intl.supportedValuesOf('timeZone')
+		const tbody = document.getElementById('results-table-body')
+		tbody.innerHTML = '' // Clear previous results
+
+		let totalDuration = 0
+
+		timeZones.forEach(tz_name => {
+			setTimeout(() => {
+				const startTime = performance.now()
+
+				const dateFrom = new Date(new Date().getFullYear() - 100, 0) // 100 years past
+				const dateEnd = new Date()  // Now
+				const transitions = Array.from(getDSTTransitions(tz_name, dateFrom, dateEnd))
+
+				const duration = performance.now() - startTime
+				totalDuration += duration
+
+				const row = document.createElement('tr')
+
+				const timeZoneCell = document.createElement('td')
+				timeZoneCell.textContent = tz_name
+				row.appendChild(timeZoneCell)
+
+				const countCell = document.createElement('td')
+				countCell.textContent = transitions.length
+				row.appendChild(countCell)
+
+				const durationCell = document.createElement('td')
+				durationCell.textContent = duration.toFixed(2)
+				row.appendChild(durationCell)
+
+				tbody.appendChild(row)
+				document.getElementById('total-duration').textContent = totalDuration
+			}, 0)
+		})
+
+	}
+
+	calculateDSTTransitions()
+</script>
+</body>
+</html>

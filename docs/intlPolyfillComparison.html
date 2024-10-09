@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Performance Comparison of TimeZoneShift: Intl vs. Polyfill</title>
+	<meta name="description" content="Compares the performance of the Intl version with its polyfill by retrieving all time changes across all time zones from April 30, 1916, to the present.">
+	<script src="getDSTTransitionsPolyfill.js"></script>
+	<script src="getDSTTransitions.js"></script>
+	<style>
+		body { margin: 24px; font: 20px/32px monospace; }
+		code { color: deeppink; border: 1px solid #f5f; padding: 0 .25em; }
+		td.ok, td.not-ok { font-weight: bold }
+		td.ok { background-color: palegreen }
+		td.not-ok { background: black; color: #fff; }
+		td.ok:before { content: 'OK' }
+		td.not-ok:before { content: 'Not OK' }
+		td { white-space: nowrap; text-align: center; border: 1px solid #f2f2f2 }
+		th { text-align: center; padding: 1em 2em; background: #f2f2f2; }
+	</style>
+</head>
+<body>
+<h1>Performance Comparison of TimeZoneShift: Intl vs. Polyfill</h1>
+<p>We compare the performance of two JavaScript implementations for detecting time changes, such as Daylight Saving Time (DST), across various time zones and date ranges. The primary implementation leverages <code title="Relying on the underlying system's time zone database, often based on the IANA Time Zone Database (also known as the tz database)">Intl.DateTimeFormat</code>, a modern and efficient API that reuses its formatter, significantly reducing the time (<b id="intl-duration">0</b> ms) required to compute results. In contrast, the proposed polyfill relies on <code>Date.toLocaleTimeString</code>, which, while offering broader compatibility, is notably slower (<b id="polyfill-duration">0</b> ms) as it does not benefit from formatter reuse.</p>
+<table>
+	<thead>
+	<tr>
+		<th>Timezone</th>
+		<th>Records</th>
+		<th>With Intl (ms)</th>
+		<th>Without Intl (ms)</th>
+		<th>Same Output</th>
+		<th>Jump found</th>
+	</tr>
+	</thead>
+	<tbody>
+
+	</tbody>
+</table>
+<p>The polyfill serves as an alternative for environments where <code>Intl.DateTimeFormat</code> might not be available, ensuring the TimeZoneShift function can still operate effectively. The <code>Intl.DateTimeFormat</code> method is substantially faster than the polyfill, particularly when dealing with large sets of data. This is due to its ability to efficiently reuse formatters, making it the preferred choice for performance-critical applications, even when a single record is needed.</p>
+<p>JavaScript engines like V8 (used in Chrome) and SpiderMonkey (used in Firefox) rely on the host operating system's (<span id="os">Windows</span>) time zone data, which may introduce discrepancies between different environments or versions.</p>
+<script>
+
+	const measure = (fn, ...args) => {
+		const t_1 = performance.now()
+		const res = [...fn(...args)]
+		const t_2 = performance.now()
+		return [t_2 - t_1, res]
+	}
+
+	const formatters = {}
+	const has_time_shift = (tz_name, ms, threshold) => {
+		const formatter = formatters[tz_name] ??= new Intl.DateTimeFormat('en-US', {
+			timeZone: tz_name,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hourCycle: 'h23',
+		})
+		const s_1 = formatter.format(ms)
+		const s_2 = formatter.format(ms + 1)
+		const t_1 = Date.UTC(+s_1.substring(6, 10), +s_1.substring(0, 2) - 1, +s_1.substring(3, 5), +s_1.substring(12, 14), +s_1.substring(15, 17), +s_1.substring(18, 20))
+		const t_2 = Date.UTC(+s_2.substring(6, 10), +s_2.substring(0, 2) - 1, +s_2.substring(3, 5), +s_2.substring(12, 14), +s_2.substring(15, 17), +s_2.substring(18, 20))
+		const delta = t_2 - t_1 - 1000
+		return threshold <= Math.abs(delta)
+	}
+
+	document.getElementById('os').innerText = navigator.oscpu
+	const b_intl = document.getElementById('intl-duration')
+	const b_polyfill = document.getElementById('polyfill-duration')
+	let d_intl = 0, d_polyfill = 0
+	const tbody = document.querySelector('tbody')
+	const timezones = Intl.supportedValuesOf('timeZone')
+	const date_1 = new Date(1916, 3, 30)
+	const date_2 = new Date(new Date().getFullYear() + 1, 0)
+	for (const tz_name of timezones)
+		if (tz_name.indexOf('/') !== -1 && !/\d/.test(tz_name))
+			setTimeout(() => {
+				const [d_1, res_1] = measure(getDSTTransitions, tz_name, date_1, date_2)
+				const [d_2, res_2] = measure(getDSTTransitions_without_Intl, tz_name, date_1, date_2)
+				const shift_found = res_1.every(ms => has_time_shift(tz_name, ms, 1000))
+				b_intl.textContent = d_intl += d_1
+				b_polyfill.textContent = d_polyfill += d_2
+				const same_output = res_1.length === res_2.length && res_1.every((a, i) => a === res_2[i])
+				const row = tbody.insertRow()
+				row.insertCell().innerHTML = tz_name
+				row.insertCell().innerHTML = res_1.length
+				row.insertCell().innerHTML = String(Math.round(d_1 / (res_1.length || 1)))
+				row.insertCell().innerHTML = String(Math.round(d_2 / (res_2.length || 1)))
+				row.insertCell().outerHTML = '<td class="' + (same_output ? 'ok' : 'not-ok') + '"></td>'
+				row.insertCell().outerHTML = '<td class="' + (shift_found ? 'ok' : 'not-ok') + '"></td>'
+				tbody.prepend(row)
+			}, 0)
+</script>
+</body>
+</html>

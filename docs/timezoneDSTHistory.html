@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>TimeZoneShift - History of DST Changes</title>
+	<meta name="description" content="Shows the history of DST changes for a specific time zone selected by the user.">
+	<script src="getDSTTransitions.js"></script>
+	<style>
+		table { margin-top: 1em }
+		td { border: 1px solid #ccc; padding: 0 1em; text-align: center; }
+	</style>
+</head>
+<body>
+<h1>History of DST Changes</h1>
+<p>This example sets the foundation for a functional and interactive tool where users can explore the history of DST changes for their selected time zone. Historical time zone data can be very complex and often includes numerous minor corrections, some of which are not always well-documented or consistently implemented across all systems.</p>
+<label for="timezone-select">Time Zone:</label> <select id="timezone-select">
+	<!-- Options will be populated by JavaScript -->
+</select>
+
+<table>
+	<thead>
+	<tr>
+		<th>Transition From</th>
+		<th>Transition To</th>
+	</tr>
+	</thead>
+	<tbody id="dst-table-body">
+	<!-- Rows will be populated by JavaScript -->
+	</tbody>
+</table>
+
+<script>
+	// Populate the time zone select dropdown
+	function populateTimeZoneSelect() {
+		const user_tz_name = Intl.DateTimeFormat().resolvedOptions().timeZone
+		const select = document.getElementById('timezone-select')
+		const timeZones = Intl.supportedValuesOf('timeZone')
+		timeZones.forEach(tz_name => {
+			const option = document.createElement('option')
+			option.value = tz_name
+			option.textContent = tz_name
+			option.selected = tz_name === user_tz_name
+			select.appendChild(option)
+		})
+	}
+
+	// Function to find all past DST transitions
+	function* getPastDSTTransitions(timeZone, yearsBack = new Date().getFullYear() - 1915) {
+		const currentDate = new Date(Date.now() + 86400 * 366 * 1000)
+		const dateFrom = new Date(currentDate.getFullYear() - yearsBack, currentDate.getMonth())
+		yield* getDSTTransitions(timeZone, dateFrom, currentDate)
+	}
+
+	// Display DST transitions in the table
+	function displayDSTChanges(tz_name) {
+		const tbody = document.getElementById('dst-table-body')
+		tbody.innerHTML = '' // Clear previous results
+
+		for (const transitionTime of [...getPastDSTTransitions(tz_name)].reverse()) {
+			const row = document.createElement('tr')
+
+			const transitionFromCell = document.createElement('td')
+			transitionFromCell.textContent = new Date(transitionTime).toLocaleString([], {timeZone: tz_name}).replace(/:[^:]+$/, '')
+			row.appendChild(transitionFromCell)
+
+			const transitionToCell = document.createElement('td')
+			transitionToCell.textContent = new Date(transitionTime + 1).toLocaleString([], {timeZone: tz_name}).replace(/:[^:]+$/, '')
+			row.appendChild(transitionToCell)
+
+			tbody.appendChild(row)
+		}
+	}
+
+	// Event listener for the button
+	const change = () => {
+		const selectedTimeZone = document.getElementById('timezone-select').value
+		document.querySelector('h1').innerText = 'History of DST Changes in ' + selectedTimeZone
+		displayDSTChanges(selectedTimeZone)
+	}
+	document.getElementById('timezone-select').addEventListener('change', change)
+
+	// Initial population of the timezone select dropdown
+	populateTimeZoneSelect()
+
+	change()
+
+</script>
+</body>
+</html>

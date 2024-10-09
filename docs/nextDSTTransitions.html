@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DST Transitions</title>
+    <meta name="description" content="Displays all the upcoming DST transitions for all time zones known by Intl">
+	<script src="getDSTTransitions.js"></script>
+    <style>
+		td {  border: 1px solid #ccc;  padding: 0 1em; text-align: center;  }
+    </style>
+</head>
+<body>
+<h1>Next DST Transitions</h1>
+<p>You can use this function to display the next DST updates from all supported time zones.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Time Zone</th>
+        <th>Transition From</th>
+        <th>Transition To</th>
+    </tr>
+    </thead>
+    <tbody id="dst-table-body">
+    <!-- Rows will be populated by JavaScript -->
+    </tbody>
+</table>
+<script>
+	function populateDSTTable() {
+		const tbody = document.getElementById('dst-table-body')
+		const timeZones = Intl.supportedValuesOf('timeZone')
+		const res = []
+		for (const tz_name of timeZones)
+			for (const ms of getDSTTransitions(tz_name))
+				res.push([tz_name, ms])
+
+		res.sort((a, b) => a[1] - b[1]).forEach(([tz_name, ms]) => {
+			const row = document.createElement('tr')
+
+			const timeZoneCell = document.createElement('td')
+			timeZoneCell.textContent = tz_name
+			row.appendChild(timeZoneCell)
+
+			const transitionFromCell = document.createElement('td')
+			transitionFromCell.textContent = new Date(ms).toLocaleString([], {timeZone: tz_name}).replace(/:[^:]+$/, '')
+			row.appendChild(transitionFromCell)
+
+			const transitionToCell = document.createElement('td')
+			transitionToCell.textContent = new Date(ms + 1).toLocaleString([], {timeZone: tz_name}).replace(/:[^:]+$/, '')
+			row.appendChild(transitionToCell)
+
+			tbody.appendChild(row)
+		})
+	}
+
+	// Populate the table on page load.
+	window.onload = populateDSTTable
+</script>
+</body>
+</html>

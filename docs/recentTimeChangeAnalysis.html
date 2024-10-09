@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Display the time changes that have appeared or disappeared within the last five years across all time zones.">
+	<title>TimeZoneShift - Recent Time Changes</title>
+	<script src="getDSTTransitions.js"></script>
+	<style>
+		body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+		.tables-container { display: flex; justify-content: center; gap: 50px; }
+		table { border-collapse: collapse; width: 45%; }
+		th, td { border: 1px solid black; padding: 8px; text-align: center; white-space: nowrap; }
+		th { background-color: #f2f2f2; }
+		h2 { font-size: 1.5em; }
+	</style>
+</head>
+<body>
+<h1>Recent Time Changes: Appeared vs. Disappeared</h1>
+<p>Visualize recent changes in DST across time zones, with insights into how time-keeping practices are evolving globally.</p>
+<div class="tables-container">
+	<div>
+		<h2>Time Changes Appeared</h2>
+		<table>
+			<thead>
+			<tr>
+				<th>Time Zone</th>
+				<th>First Appeared Date</th>
+			</tr>
+			</thead>
+			<tbody id="appeared-table-body">
+			<!-- Rows will be populated by JavaScript -->
+			</tbody>
+		</table>
+	</div>
+	<div>
+		<h2>Time Changes Disappeared</h2>
+		<table>
+			<thead>
+			<tr>
+				<th>Time Zone</th>
+				<th>Last Disappeared Date</th>
+			</tr>
+			</thead>
+			<tbody id="disappeared-table-body">
+			<!-- Rows will be populated by JavaScript -->
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<script>
+
+	const all_timezones = Intl.supportedValuesOf('timeZone')
+	const tbody_appeared = document.getElementById('appeared-table-body')
+	const tbody_disappeared = document.getElementById('disappeared-table-body')
+	const year = 31556925261
+	const now = Date.now()
+	const d_1 = new Date(now - 5 * year)
+	const d_2 = new Date(now + year)
+	for (const tz_name of all_timezones) {
+		let old_record = null, recent_record = null
+		for (const unix_ms of getDSTTransitions(tz_name, d_1, d_2)) {
+			old_record ??= unix_ms
+			recent_record = unix_ms
+		}
+		if (old_record) {
+			if (now - year < recent_record && now - 3 * year < old_record) {
+				const tr = tbody_appeared.insertRow()
+				tr.insertCell().innerHTML = tz_name
+				tr.insertCell().innerHTML = new Date(old_record + 1).toLocaleString([], {timeZone: tz_name})
+			} else if (recent_record < now - year) {
+				const tr = tbody_disappeared.insertRow()
+				tr.insertCell().innerHTML = tz_name
+				tr.insertCell().innerHTML = new Date(recent_record + 1).toLocaleString([], {timeZone: tz_name})
+			}
+		}
+	}
+</script>
+</body>
+</html>
