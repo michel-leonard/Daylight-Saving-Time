@@ -4,7 +4,7 @@
 - This version of the software (all files) is released into the public domain.
 - The software is provided "as it" without any warranty, express or implied.
 
-The software provide the entire **history of DST** for all time zones, and a **SVG world map** with all time zones displaying their next seasonal transition on mouseover. The source code is only 20KB when compressed. You can check the [live examples](https://michel-leonard.github.io/all-timezones-gps-dst/).
+The software provide the entire **history of DST** for all time zones, and a **SVG world map** with all time zones displaying their next seasonal transition on mouseover. The source code is only 20KB when compressed. You can check the [live examples](https://michel-leonard.github.io/Daylight-Saving-Time/).
 
 - **Precision:**
     - The function that detect seasonal transition is precise to the second.
